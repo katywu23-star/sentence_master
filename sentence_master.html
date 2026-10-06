@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>造句王 PK 擂台 - 語文課堂隨堂競賽平台</title>
+    <!-- Tailwind CSS for sleek modern classroom UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js for lightweight, reactive state management -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Canvas Confetti for celebratory milestone feedback -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome icons for visual indicators -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Noto Sans TC for clean, readable traditional Chinese typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            touch-action: manipulation;
+        }
+        .recording-pulse {
+            animation: recording-animation 1.2s infinite ease-in-out;
+        }
+        @keyframes recording-animation {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .combo-bounce {
+            animation: bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes bounce-in {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between selection:bg-indigo-500 selection:text-white" x-data="gameApp()" x-init="initApp()">
+
+    <!-- 頂部導覽列：課堂狀態、分享、AI設定與教師後台 -->
+    <header class="bg-indigo-600 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" @click="goHome()">
+                <div class="bg-amber-400 p-2.5 rounded-2xl text-indigo-950 shadow-inner flex items-center justify-center">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black tracking-wide">造句王 PK 擂台</h1>
+                    <p class="text-xs text-indigo-200">國語文課堂隨堂測驗與互動平台</p>
+                </div>
+            </div>
+
+            <!-- 控制鈕區塊 -->
+            <div class="flex items-center space-x-2 md:space-x-3">
+                <!-- 分享與匯出按鈕 -->
+                <button @click="showShareModal = true" 
+                        class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs md:text-sm font-extrabold flex items-center gap-1.5 shadow transition">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>分享給學生</span>
+                </button>
+
+                <!-- 教師題庫管理按鈕 -->
+                <button @click="openTeacherModal()" 
+                        class="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-indigo-950 rounded-xl text-xs md:text-sm font-extrabold flex items-center gap-1.5 shadow transition">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    <span class="hidden sm:inline">題庫管理</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- 1. 首頁/模式選擇畫面 -->
+        <template x-if="screen === 'home'">
+            <div class="max-w-2xl mx-auto bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-indigo-50 text-center space-y-6 my-auto">
+                <div class="inline-block bg-indigo-50 p-4 rounded-full text-indigo-600 mb-2">
+                    <i class="fa-solid fa-feather-pointed text-5xl"></i>
+                </div>
+                <h2 class="text-3xl font-black text-slate-800">歡迎來到課堂造句大挑戰！</h2>
+                <p class="text-slate-600 leading-relaxed text-sm md:text-base">
+                    仔細觀察圖片情境，理解前後半句的因果、轉折關係，使用<span class="font-bold text-indigo-600">目標語詞</span>造出邏輯通順、結構完整的句子。支援語音辨識直接說出句子！
+                </p>
+                
+                <!-- 學生座號或暱稱 -->
+                <div class="text-left bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                    <label class="block text-sm font-bold text-slate-700">
+                        <i class="fa-solid fa-user-tag text-indigo-500 me-1"></i> 輸入學生姓名或座號：
+                    </label>
+                    <input type="text" x-model="playerName" placeholder="例如：401李小華 或 造句小達人" 
+                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold text-base text-indigo-900 bg-white">
+                </div>
+
+                <!-- 模式選擇 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <button @click="startGame('competition')" 
+                            class="p-5 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all flex flex-col items-center justify-center space-y-2 group">
+                        <i class="fa-solid fa-trophy text-3xl group-hover:scale-110 transition-transform text-amber-300"></i>
+                        <span class="font-extrabold text-xl">課堂競賽模式</span>
+                        <span class="text-xs text-indigo-100 opacity-90">60秒限時倒數 + 連勝Combo加分</span>
+                    </button>
+
+                    <button @click="startGame('practice')" 
+                            class="p-5 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl shadow-lg hover:shadow-emerald-200 hover:-translate-y-0.5 transition-all flex flex-col items-center justify-center space-y-2 group">
+                        <i class="fa-solid fa-compass text-3xl group-hover:scale-110 transition-transform text-amber-200"></i>
+                        <span class="font-extrabold text-xl">自主精進模式</span>
+                        <span class="text-xs text-emerald-100 opacity-90">無計時壓力 + 完整提示與診斷</span>
+                    </button>
+                </div>
+
+                <div class="text-xs text-slate-400 flex items-center justify-center gap-2 pt-2">
+                    <span><i class="fa-solid fa-book-open me-1 text-indigo-500"></i> 目前題庫數量：<strong class="text-indigo-600" x-text="questions.length"></strong> 題</span>
+                </div>
+            </div>
+        </template>
+
+        <!-- 2. 進行答題畫面 -->
+        <template x-if="screen === 'playing'">
+            <div class="space-y-4">
+                <!-- 儀表板：題號、得分、Combo、倒數計時 -->
+                <div class="bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3 md:space-x-4">
+                        <div class="bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+                            <span class="text-xs text-indigo-500 font-bold block">題號</span>
+                            <span class="text-base md:text-lg font-black text-indigo-700" x-text="`${currentIdx + 1} / ${questions.length}`"></span>
+                        </div>
+                        <div class="bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+                            <span class="text-xs text-amber-600 font-bold block">總得分</span>
+                            <span class="text-base md:text-lg font-black text-amber-600" x-text="score"></span>
+                        </div>
+                        <div x-show="combo > 1" class="combo-bounce bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-black shadow flex items-center gap-1">
+                            <i class="fa-solid fa-fire text-amber-300"></i>
+                            <span x-text="`${combo} 連答達成!`"></span>
+                        </div>
+                    </div>
+
+                    <!-- 競賽倒數計時器 -->
+                    <div x-show="mode === 'competition'" class="flex items-center space-x-2">
+                        <i class="fa-solid fa-stopwatch text-indigo-500 text-lg"></i>
+                        <div class="w-24 md:w-36 bg-slate-100 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200">
+                            <div class="h-full rounded-full transition-all duration-1000"
+                                 :class="timeLeft <= 10 ? 'bg-red-500 animate-pulse' : 'bg-indigo-500'"
+                                 :style="`width: ${(timeLeft / maxTime) * 100}%`"></div>
+                        </div>
+                        <span class="font-black text-base w-7 text-right" 
+                              :class="timeLeft <= 10 ? 'text-red-500 font-black' : 'text-slate-700'"
+                              x-text="timeLeft"></span>
+                    </div>
+                </div>
+
+                <!-- 主題目卡片 -->
+                <div class="bg-white rounded-3xl p-5 md:p-8 shadow-xl border border-indigo-50 space-y-6 relative overflow-hidden">
+                    
+                    <!-- 題目上方：目標語詞 Badge 與提示按鈕 -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">必須使用之目標語詞</span>
+                            <span class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-extrabold text-xl px-4 py-1.5 rounded-2xl shadow-md tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-star text-amber-300 text-sm"></i>
+                                <span x-text="currentQuestion.targetWord"></span>
+                            </span>
+                        </div>
+
+                        <!-- 階梯式提示區 -->
+                        <div class="flex items-center gap-2">
+                            <button @click="useHint(1)" 
+                                    :disabled="hintLevel >= 1"
+                                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1"
+                                    :class="hintLevel >= 1 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-700 border-slate-200'">
+                                <i class="fa-solid fa-lightbulb"></i>
+                                <span x-text="hintLevel >= 1 ? '已看情境線索' : '線索提示 (-10分)'"></span>
+                            </button>
+                            
+                            <button @click="useHint(2)" 
+                                    :disabled="hintLevel >= 2"
+                                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1"
+                                    :class="hintLevel >= 2 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-700 border-slate-200'">
+                                <i class="fa-solid fa-puzzle-piece"></i>
+                                <span x-text="hintLevel >= 2 ? '已看句型骨架' : '骨架引導 (-20分)'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 提示訊息框 -->
+                    <div x-show="hintLevel > 0" x-transition class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs md:text-sm text-amber-950 space-y-1.5">
+                        <template x-if="hintLevel >= 1">
+                            <p class="flex items-start gap-1.5">
+                                <i class="fa-solid fa-magnifying-glass text-amber-600 mt-0.5"></i>
+                                <span><strong>情境線索：</strong> <span x-text="currentQuestion.hint1"></span></span>
+                            </p>
+                        </template>
+                        <template x-if="hintLevel >= 2">
+                            <p class="flex items-start gap-1.5 border-t border-amber-200/60 pt-1.5">
+                                <i class="fa-solid fa-diagram-project text-amber-600 mt-0.5"></i>
+                                <span><strong>接續建議：</strong> <span x-text="currentQuestion.hint2"></span></span>
+                            </p>
+                        </template>
+                    </div>
+
+                    <!-- 雙欄內容：情境圖 + 句子拼接區 -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        
+                        <!-- 左側：圖片情境 -->
+                        <div class="md:col-span-5 relative group">
+                            <div class="aspect-4/3 rounded-2xl overflow-hidden shadow-md bg-slate-100 border border-slate-200 relative">
+                                <img :src="currentQuestion.image" :alt="currentQuestion.targetWord" 
+                                     class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                     @error="$el.src='https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80'">
+                                <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/75 to-transparent p-3 text-white text-xs">
+                                    <i class="fa-solid fa-image me-1"></i> 請根據圖片情境構思前後半句的關係
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右側：半句動態拼接預覽 + 語音/鍵盤輸入 -->
+                        <div class="md:col-span-7 space-y-4">
+                            
+                            <!-- 完整句子組裝即時預覽 -->
+                            <div class="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-100 space-y-2">
+                                <div class="text-xs font-bold text-indigo-700 flex items-center justify-between">
+                                    <span>造句即時組裝預覽 (填寫位置：<strong class="text-indigo-900 underline" x-text="currentQuestion.missingPosition === 'back' ? '後半句' : '前半句'"></strong>)</span>
+                                    <i class="fa-solid fa-arrows-split-up-and-left text-indigo-400"></i>
+                                </div>
+                                
+                                <div class="text-base md:text-lg font-bold text-slate-800 leading-relaxed bg-white p-3.5 rounded-xl border border-indigo-100 shadow-sm flex flex-wrap items-center gap-1.5">
+                                    <!-- 缺口在前 -->
+                                    <template x-if="currentQuestion.missingPosition === 'front'">
+                                        <div class="contents">
+                                            <span class="inline-block px-2.5 py-1 bg-amber-100 text-amber-950 border-b-2 border-amber-400 rounded-lg font-black text-sm md:text-base"
+                                                  x-text="userInput.trim() ? userInput : '【請在此造前半句...】'"></span>
+                                            <span class="text-indigo-900" x-text="currentQuestion.givenPart"></span>
+                                        </div>
+                                    </template>
+
+                                    <!-- 缺口在後 -->
+                                    <template x-if="currentQuestion.missingPosition === 'back'">
+                                        <div class="contents">
+                                            <span class="text-indigo-900" x-text="currentQuestion.givenPart"></span>
+                                            <span class="inline-block px-2.5 py-1 bg-amber-100 text-amber-950 border-b-2 border-amber-400 rounded-lg font-black text-sm md:text-base"
+                                                  x-text="userInput.trim() ? userInput : '【請在此造後半句...】'"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- 學生造句輸入區（支援 Web Speech 語音） -->
+                            <div class="space-y-2 relative">
+                                <label class="block text-xs font-bold text-slate-600 flex justify-between items-center">
+                                    <span class="flex items-center gap-1">
+                                        <i class="fa-solid fa-pen-nib text-indigo-500"></i> 
+                                        造句輸入 (需包含「<strong class="text-indigo-600" x-text="currentQuestion.targetWord"></strong>」)：
+                                    </span>
+                                    <span class="text-slate-400 font-mono" x-text="`${userInput.length} 字`"></span>
+                                </label>
+
+                                <div class="relative">
+                                    <textarea x-model="userInput" 
+                                              rows="3" 
+                                              placeholder="可打字或點擊右下方麥克風用語音說出句子..." 
+                                              class="w-full p-3.5 pr-28 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-0 focus:outline-none font-medium text-slate-800 resize-none transition bg-slate-50 focus:bg-white text-base"
+                                              :class="isRecording ? 'border-rose-400 ring-2 ring-rose-200 bg-rose-50/20' : ''"></textarea>
+
+                                    <!-- 語音辨識切換按鈕 -->
+                                    <div class="absolute right-3 bottom-3 flex items-center">
+                                        <button @click="toggleSpeechRecognition()" 
+                                                type="button"
+                                                class="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow transition-all duration-200"
+                                                :class="isRecording ? 'bg-rose-500 text-white recording-pulse' : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-indigo-200'">
+                                            <i class="fa-solid" :class="isRecording ? 'fa-microphone-lines fa-bounce' : 'fa-microphone'"></i>
+                                            <span x-text="isRecording ? '聆聽中...' : '語音輸入'"></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 錄音動態視覺提示 -->
+                                <div x-show="isRecording" x-transition class="flex items-center gap-2 text-xs text-rose-600 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                                    <span>🎤 正在聆聽您的發音...請清晰說出句子！(完成後請再次點擊按鈕停止)</span>
+                                </div>
+                            </div>
+
+                            <!-- 送出評估按鈕 -->
+                            <div>
+                                <button @click="submitSentence()" 
+                                        :disabled="isEvaluating || !userInput.trim()"
+                                        class="w-full py-3.5 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 text-white rounded-2xl font-black text-lg shadow-lg hover:shadow-indigo-200 transition flex items-center justify-center space-x-2">
+                                    <template x-if="!isEvaluating">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fa-solid fa-paper-plane"></i>
+                                            <span>送出進行邏輯審閱</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="isEvaluating">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fa-solid fa-brain fa-spin"></i>
+                                            <span>AI 正在審閱句子通順與邏輯度...</span>
+                                        </div>
+                                    </template>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- 3. AI 評估與邏輯診斷彈窗 -->
+        <template x-if="showResultModal">
+            <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-indigo-100 space-y-5 animate-bounce-in">
+                    
+                    <div class="text-center space-y-2">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full shadow-md"
+                             :class="lastResult.passed ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'">
+                            <i class="fa-solid text-3xl" :class="lastResult.passed ? 'fa-check' : 'fa-triangle-exclamation'"></i>
+                        </div>
+                        <h3 class="text-2xl font-black" :class="lastResult.passed ? 'text-emerald-700' : 'text-rose-700'"
+                            x-text="lastResult.passed ? '造句通過！邏輯通順！' : '句子邏輯待調整，再試一次！'"></h3>
+                        
+                        <!-- 星等顯示 -->
+                        <div class="flex justify-center space-x-1.5 text-2xl py-0.5">
+                            <template x-for="i in 3">
+                                <i class="fa-solid fa-star" :class="i <= lastResult.stars ? 'text-amber-400' : 'text-slate-200'"></i>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- 得分明細 -->
+                    <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2 text-xs md:text-sm">
+                        <div class="flex justify-between items-center font-bold">
+                            <span class="text-slate-600">本題獲得得分：</span>
+                            <span class="text-xl font-black text-indigo-600" x-text="`+${lastResult.gainedScore} 分`"></span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-slate-500 border-t border-slate-200/60 pt-2">
+                            <span>提示扣分: <strong x-text="`-${lastResult.deduction}`"></strong></span>
+                            <span>連勝獎勵: <strong x-text="`x${lastResult.comboMultiplier}`"></strong></span>
+                        </div>
+                    </div>
+
+                    <!-- 完整句呈現與邏輯診斷評語 -->
+                    <div class="space-y-2.5">
+                        <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100">
+                            <span class="text-xs font-bold text-indigo-600 block mb-0.5">組裝後完整句子：</span>
+                            <p class="font-bold text-slate-800 text-sm leading-relaxed" x-text="lastResult.fullSentence"></p>
+                        </div>
+
+                        <!-- 具體邏輯診斷說明 -->
+                        <div class="p-3.5 rounded-xl border leading-relaxed"
+                             :class="lastResult.passed ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-rose-50/80 border-rose-200 text-rose-950'">
+                            <span class="text-xs font-black flex items-center gap-1.5 mb-1"
+                                  :class="lastResult.passed ? 'text-emerald-800' : 'text-rose-800'">
+                                <i class="fa-solid fa-brain"></i> 邏輯審閱診斷：
+                            </span>
+                            <p class="text-xs leading-normal font-medium" x-text="lastResult.feedback"></p>
+                        </div>
+                    </div>
+
+                    <!-- 按鈕控制 -->
+                    <div class="pt-2">
+                        <template x-if="lastResult.passed">
+                            <button @click="nextQuestion()" 
+                                    class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base rounded-2xl shadow-lg transition">
+                                <span x-text="currentIdx + 1 < questions.length ? '前進下一題 ➔' : '查看擂台結算成績 🏆'"></span>
+                            </button>
+                        </template>
+
+                        <template x-if="!lastResult.passed">
+                            <button @click="showResultModal = false" 
+                                    class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-base rounded-2xl shadow-lg transition">
+                                重新修改句子 ✏️
+                            </button>
+                        </template>
+                    </div>
+
+                </div>
+            </div>
+        </template>
+
+        <!-- 4. 競賽結算/排行榜畫面 -->
+        <template x-if="screen === 'result'">
+            <div class="max-w-2xl mx-auto bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-indigo-50 text-center space-y-6 my-auto">
+                <div class="inline-block bg-amber-100 p-4 rounded-full text-amber-600 mb-2 shadow-inner">
+                    <i class="fa-solid fa-trophy text-5xl animate-bounce"></i>
+                </div>
+                
+                <div>
+                    <h2 class="text-3xl font-black text-slate-800">競賽完成！擂台成績單</h2>
+                    <p class="text-slate-500 text-sm mt-1" x-text="`恭喜 ${playerName} 完成所有國語文造句關卡！`"></p>
+                </div>
+
+                <!-- 數據面板 -->
+                <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <div>
+                        <span class="text-xs font-bold text-slate-500 block">總得分</span>
+                        <span class="text-2xl font-black text-indigo-600" x-text="score"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-slate-500 block">累積星等</span>
+                        <span class="text-2xl font-black text-amber-500" x-text="`${totalStars} ⭐`"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-slate-500 block">最大連答</span>
+                        <span class="text-2xl font-black text-pink-600" x-text="`${maxCombo} Combo`"></span>
+                    </div>
+                </div>
+
+                <!-- 榮譽榜 -->
+                <div class="text-left space-y-3">
+                    <h3 class="text-sm font-bold text-slate-700 flex items-center justify-between">
+                        <span><i class="fa-solid fa-ranking-star text-indigo-500 me-1"></i> 課堂即時榮譽榜 (Top 5)</span>
+                        <span class="text-xs text-slate-400">本地紀錄</span>
+                    </h3>
+                    <div class="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-200 text-sm">
+                        <template x-for="(item, index) in leaderboard" :key="index">
+                            <div class="p-3 flex items-center justify-between" :class="item.name === playerName ? 'bg-indigo-50 font-bold' : ''">
+                                <div class="flex items-center space-x-3">
+                                    <span class="w-6 h-6 rounded-full flex items-center justify-center font-black text-xs"
+                                          :class="index === 0 ? 'bg-amber-400 text-white' : (index === 1 ? 'bg-slate-300 text-slate-700' : (index === 2 ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-600'))"
+                                          x-text="index + 1"></span>
+                                    <span x-text="item.name"></span>
+                                </div>
+                                <div class="space-x-3 text-xs">
+                                    <span class="text-amber-600 font-bold" x-text="`${item.stars} ⭐`"></span>
+                                    <span class="text-indigo-600 font-black text-sm" x-text="`${item.score} 分`"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- 控制鈕 -->
+                <div class="flex gap-3 pt-2">
+                    <button @click="goHome()" class="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition">
+                        返回主選單
+                    </button>
+                    <button @click="startGame(mode)" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition">
+                        再次挑戰擂台
+                    </button>
+                </div>
+            </div>
+        </template>
+
+    </main>
+
+    <!-- 5. 課堂分享指南彈窗 (Share Modal) -->
+    <div x-show="showShareModal" x-transition class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-indigo-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-share-nodes text-emerald-600"></i> 如何在課堂上分享給學生
+                </h3>
+                <button @click="showShareModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 text-sm text-slate-600">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-950 space-y-2">
+                    <p class="font-bold flex items-center gap-1.5 text-emerald-800">
+                        <i class="fa-solid fa-circle-check"></i> 方式一：直接下載 HTML 檔案給學生
+                    </p>
+                    <p class="text-xs leading-relaxed">
+                        點擊下方按鈕將這個網頁下載為單一 <code>.html</code> 檔案，直接放在隨身碟、學校 NAS、Google Classroom 或教育雲發布，學生在平板/電腦<strong>雙擊即可離線開啟並練習</strong>！
+                    </p>
+                    <button @click="downloadCurrentHtml()" class="mt-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-download"></i> 立即下載 index.html 檔
+                    </button>
+                </div>
+
+                <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-indigo-950 space-y-2">
+                    <p class="font-bold flex items-center gap-1.5 text-indigo-800">
+                        <i class="fa-solid fa-globe"></i> 方式二：上傳至免費靜態託管（生成 QR Code）
+                    </p>
+                    <p class="text-xs leading-relaxed">
+                        將檔案上傳至 <strong>GitHub Pages</strong>、<strong>Netlify Drop</strong> 或 <strong>Vercel</strong>，即可獲得專屬網址。課堂上將網址轉為 QR Code 投影在電子白板，學生拿 iPad 掃描即可開始比賽！
+                    </p>
+                </div>
+            </div>
+
+            <div class="pt-2 text-right">
+                <button @click="showShareModal = false" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. 教師隨堂題庫管理後台 (Teacher Modal) -->
+    <div x-show="showTeacherModal" x-transition class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-indigo-100 space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> 教師隨堂題庫快速匯入與管理
+                </h3>
+                <button @click="showTeacherModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+
+            <div class="overflow-y-auto space-y-4 flex-1 pr-1 custom-scrollbar text-xs md:text-sm">
+                <!-- 格式說明 -->
+                <div class="bg-indigo-50 p-3.5 rounded-2xl border border-indigo-100 space-y-1">
+                    <p class="font-bold text-indigo-900">💡 老師快捷批次貼上格式說明：</p>
+                    <p class="text-slate-600">請按格式貼上 (每行一題，使用直線 <code>|</code> 隔開)：</p>
+                    <code class="block bg-white p-2 rounded border border-indigo-200 text-slate-700 text-xs select-all">
+                        圖片網址 | 目標語詞 | 給定半句 | 缺口位置(front/back) | 提示1 | 提示2
+                    </code>
+                </div>
+
+                <!-- 批次輸入框 -->
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-700">快速批次清單貼上區域：</label>
+                    <textarea x-model="rawTeacherInput" rows="4" placeholder="https://images.unsplash.com/... | 雖然 | 外面下著大雨， | back | 觀察雨具與運動 | 思考轉折接續"
+                              class="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                    <button @click="parseTeacherInput()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow">
+                        解析並更新題目
+                    </button>
+                </div>
+
+                <!-- 已載入題目列表 -->
+                <div class="space-y-2">
+                    <span class="font-bold text-slate-700 block">目前題庫清單 (共 <span x-text="questions.length"></span> 題)：</span>
+                    <div class="space-y-2">
+                        <template x-for="(q, idx) in questions" :key="idx">
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
+                                <div class="space-y-0.5 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded font-bold" x-text="`第 ${idx+1} 題`"></span>
+                                        <span class="font-bold text-slate-800" x-text="`語詞：${q.targetWord}`"></span>
+                                        <span class="text-xs bg-slate-200 px-1.5 py-0.5 rounded text-slate-600" x-text="`缺口：${q.missingPosition === 'front' ? '前半句' : '後半句'}`"></span>
+                                    </div>
+                                    <p class="text-xs text-slate-600" x-text="`給定半句：${q.givenPart}`"></p>
+                                </div>
+                                <button @click="deleteQuestion(idx)" class="text-rose-500 hover:text-rose-700 p-2 text-base">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底欄控制 -->
+            <div class="pt-3 border-t border-slate-100 flex justify-between">
+                <button @click="resetDefaultQuestions()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
+                    還原預設課堂題庫
+                </button>
+                <button @click="showTeacherModal = false" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow">
+                    完成關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-400">
+        造句王 PK 擂台 — 國語文課堂智慧互動學習平台
+    </footer>
+
+    <script>
+        function gameApp() {
+            return {
+                screen: 'home', // 'home', 'playing', 'result'
+                mode: 'competition', // 'competition', 'practice'
+                playerName: '語文小達人',
+                
+                // 題庫資料
+                questions: [],
+                rawTeacherInput: '',
+                currentIdx: 0,
+                
+                // 競賽與即時統計
+                score: 0,
+                combo: 0,
+                maxCombo: 0,
+                totalStars: 0,
+                timeLeft: 60,
+                maxTime: 60,
+                timer: null,
+                
+                // 答題與語音狀態
+                userInput: '',
+                hintLevel: 0,
+                isEvaluating: false,
+                isRecording: false,
+                recognition: null,
+                
+                // 視窗開關
+                showResultModal: false,
+                showTeacherModal: false,
+                showShareModal: false,
+                
+                // 審核結果
+                lastResult: {
+                    passed: false,
+                    stars: 0,
+                    gainedScore: 0,
+                    deduction: 0,
+                    comboMultiplier: 1,
+                    fullSentence: '',
+                    feedback: ''
+                },
+
+                leaderboard: [
+                    { name: '五年二班小明', score: 360, stars: 15 },
+                    { name: '造句王林同學', score: 310, stars: 12 },
+                    { name: '語文小勇士', score: 280, stars: 10 }
+                ],
+
+                get currentQuestion() {
+                    return this.questions[this.currentIdx] || {
+                        image: '',
+                        targetWord: '',
+                        givenPart: '',
+                        missingPosition: 'back',
+                        hint1: '',
+                        hint2: ''
+                    };
+                },
+
+                initApp() {
+                    this.loadDefaultQuestions();
+                    const savedQuestions = localStorage.getItem('sentence_app_questions');
+                    if (savedQuestions) {
+                        try { this.questions = JSON.parse(savedQuestions); } catch(e){}
+                    }
+                    this.initSpeechRecognition();
+                },
+
+                // 初始化 Web Speech API 語音辨識
+                initSpeechRecognition() {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (SpeechRecognition) {
+                        this.recognition = new SpeechRecognition();
+                        this.recognition.lang = 'zh-TW';
+                        this.recognition.continuous = false;
+                        this.recognition.interimResults = false;
+
+                        this.recognition.onstart = () => {
+                            this.isRecording = true;
+                        };
+
+                        this.recognition.onresult = (event) => {
+                            let transcript = '';
+                            for (let i = event.resultIndex; i < event.results.length; i++) {
+                                transcript += event.results[i][0].transcript;
+                            }
+                            transcript = transcript.trim()
+                                .replace(/^(嗯|啊|那個|然後)/, '')
+                                .replace(/\s+/g, '');
+                            
+                            if (transcript) {
+                                this.userInput = this.userInput ? this.userInput + transcript : transcript;
+                            }
+                        };
+
+                        this.recognition.onerror = (event) => {
+                            console.warn('語音辨識狀態:', event.error);
+                            this.isRecording = false;
+                        };
+
+                        this.recognition.onend = () => {
+                            this.isRecording = false;
+                        };
+                    }
+                },
+
+                toggleSpeechRecognition() {
+                    if (!this.recognition) {
+                        this.showCustomNotification('提示', '您的瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器或以鍵盤輸入！');
+                        return;
+                    }
+
+                    if (this.isRecording) {
+                        this.recognition.stop();
+                        this.isRecording = false;
+                    } else {
+                        try {
+                            this.recognition.start();
+                        } catch(e) {
+                            console.error('開啟錄音失敗:', e);
+                            this.isRecording = false;
+                        }
+                    }
+                },
+
+                goHome() {
+                    if (this.recognition && this.isRecording) {
+                        this.recognition.stop();
+                    }
+                    clearInterval(this.timer);
+                    this.screen = 'home';
+                },
+
+                loadDefaultQuestions() {
+                    this.questions = [
+                        {
+                            image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=800&q=80',
+                            targetWord: '雖然',
+                            givenPart: '，我們依然按時出門完成跑步訓練。',
+                            missingPosition: 'front',
+                            hint1: '觀察圖片中的雨天情境與跑步人物。',
+                            hint2: '可以造：「雖然今天外面下著傾盆大雨」'
+                        },
+                        {
+                            image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80',
+                            targetWord: '分享',
+                            givenPart: '小明把好吃的餅乾帶來學校，',
+                            missingPosition: 'back',
+                            hint1: '觀察同學之間互相分食的快樂氣氛。',
+                            hint2: '可以造：「熱情地和好朋友們一起分享。」'
+                        },
+                        {
+                            image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80',
+                            targetWord: '為了',
+                            givenPart: '，他每天放學後都留在圖書館認真閱讀。',
+                            missingPosition: 'front',
+                            hint1: '思考學生主動留校閱讀的目的（如期末測驗、充實自己）。',
+                            hint2: '可以造：「為了在期末考試中獲得優異成績」'
+                        },
+                        {
+                            image: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=800&q=80',
+                            targetWord: '除了',
+                            givenPart: '小華是個多才多藝的孩子，除了熱愛彈鋼琴，',
+                            missingPosition: 'back',
+                            hint1: '注意觀察圖片中可能進行的第二項運動或嗜好。',
+                            hint2: '可以造：「還非常擅長打籃球與畫畫。」'
+                        }
+                    ];
+                },
+
+                startGame(selectedMode) {
+                    this.mode = selectedMode;
+                    this.currentIdx = 0;
+                    this.score = 0;
+                    this.combo = 0;
+                    this.maxCombo = 0;
+                    this.totalStars = 0;
+                    this.userInput = '';
+                    this.hintLevel = 0;
+                    this.screen = 'playing';
+                    
+                    if (this.mode === 'competition') {
+                        this.resetTimer();
+                    }
+                },
+
+                resetTimer() {
+                    clearInterval(this.timer);
+                    this.timeLeft = 60;
+                    this.maxTime = 60;
+                    this.timer = setInterval(() => {
+                        this.timeLeft--;
+                        if (this.timeLeft <= 0) {
+                            clearInterval(this.timer);
+                            this.autoTimeOutSubmit();
+                        }
+                    }, 1000);
+                },
+
+                useHint(level) {
+                    if (this.hintLevel < level) {
+                        this.hintLevel = level;
+                    }
+                },
+
+                async submitSentence() {
+                    if (!this.userInput.trim() || this.isEvaluating) return;
+
+                    this.isEvaluating = true;
+                    const q = this.currentQuestion;
+                    const input = this.userInput.trim();
+                    
+                    let fullSentence = '';
+                    if (q.missingPosition === 'front') {
+                        fullSentence = input + q.givenPart;
+                    } else {
+                        fullSentence = q.givenPart + input;
+                    }
+
+                    const containsTarget = input.includes(q.targetWord);
+                    const isLongEnough = input.length >= 4;
+
+                    let evalResult = { passed: false, score: 30, feedback: '' };
+
+                    if (!containsTarget) {
+                        evalResult = {
+                            passed: false,
+                            score: 30,
+                            feedback: `❌ 尚未包含指定的目標語詞「${q.targetWord}」，請務必將此語詞融入您的句子中！`
+                        };
+                    } else if (!isLongEnough) {
+                        evalResult = {
+                            passed: false,
+                            score: 40,
+                            feedback: '❌ 輸入的句子內容稍嫌簡短，請補充更完整的人事物描寫。'
+                        };
+                    } else {
+                        evalResult = await this.evaluateSentenceLogic(fullSentence, input, q.targetWord, q.givenPart, q.missingPosition, q.hint1);
+                    }
+
+                    let stars = 0;
+                    let gainedScore = 0;
+                    let deduction = this.hintLevel * 10;
+                    let comboMult = 1;
+
+                    if (evalResult.passed) {
+                        if (evalResult.score >= 85 && this.hintLevel === 0) stars = 3;
+                        else if (evalResult.score >= 70) stars = 2;
+                        else stars = 1;
+
+                        this.combo++;
+                        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+                        comboMult = 1 + (this.combo - 1) * 0.2;
+
+                        let basePoint = stars * 35;
+                        gainedScore = Math.max(10, Math.round((basePoint - deduction) * comboMult));
+                        
+                        this.score += gainedScore;
+                        this.totalStars += stars;
+
+                        try {
+                            confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                        } catch(e){}
+                    } else {
+                        this.combo = 0;
+                    }
+
+                    this.lastResult = {
+                        passed: evalResult.passed,
+                        stars: stars,
+                        gainedScore: gainedScore,
+                        deduction: deduction,
+                        comboMultiplier: comboMult.toFixed(1),
+                        fullSentence: fullSentence,
+                        feedback: evalResult.feedback
+                    };
+
+                    this.isEvaluating = false;
+                    this.showResultModal = true;
+                },
+
+                // 核心邏輯診斷引擎（Gemini 與進階規則雙軌）
+                async evaluateSentenceLogic(fullSentence, userInput, targetWord, givenPart, missingPosition, hint1) {
+                    try {
+                        const apiKey = "";
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                        
+                        const systemPrompt = `你是一位專業且溫暖的小學國語文教師與語法評委。
+請嚴格評估學生的造句是否具備良好的「邏輯連貫性」、「前後因果/轉折呼應」與「句型通順度」。
+
+題目要求：
+- 必須含有目標語詞：「${targetWord}」
+- 系統給定半句：「${givenPart}」
+- 學生填寫半句：「${userInput}」
+- 組裝後的完整句子：「${fullSentence}」
+- 情境提示線索：「${hint1}」
+
+評審重點：
+1. 邏輯合理性：前後半句的因果、轉折、條件是否合理？有無邏輯矛盾？
+2. 語意通順度：主詞有無脫節？是否句意完整？
+3. 語意有無重複：是否重複出現多餘連詞（如同時出現「因為所以」、「雖然但是」等贅詞）？
+
+請回傳 JSON 格式：
+{
+  "passed": true 或 false (只有在邏輯合理且語意通順時才給 true),
+  "score": 0到100的分數,
+  "feedback": "1到2句具體的教學回饋，指明邏輯優缺點或提出具體修改建議，態度親切鼓勵"
+}`;
+
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: systemPrompt }] }],
+                                generationConfig: {
+                                    responseMimeType: "application/json"
+                                }
+                            })
+                        });
+
+                        const data = await response.json();
+                        const resText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (resText) {
+                            const parsed = JSON.parse(resText);
+                            return {
+                                passed: Boolean(parsed.passed),
+                                score: parsed.score || 80,
+                                feedback: parsed.feedback || '句子邏輯通順，描寫生動！'
+                            };
+                        }
+                    } catch(err) {
+                        // 降級為本地規則檢驗
+                    }
+
+                    return this.localLogicRuleEngine(fullSentence, userInput, targetWord, givenPart);
+                },
+
+                localLogicRuleEngine(fullSentence, userInput, targetWord, givenPart) {
+                    const conflictRules = [
+                        { pattern: /雖然.*雖然/, msg: '句子中「雖然」重複出現了，請刪除多餘的連詞！' },
+                        { pattern: /因為.*因為/, msg: '句子中「因為」重複出現了，請保留一個即可！' },
+                        { pattern: /除了.*除了/, msg: '句子中「除了」重複出現了！' },
+                        { pattern: /為了.*為了/, msg: '句子中「為了」重複出現了！' },
+                        { pattern: /雖然.*(因為|所以)/, msg: '「雖然」通常與「但是、依然、卻」搭配轉折，搭配「因為/所以」邏輯不通喔！' },
+                        { pattern: /因為.*(但是|然而|依然)/, msg: '「因為」是因果關係，不建議直接搭配轉折詞「但是/依然」！' }
+                    ];
+
+                    for (const rule of conflictRules) {
+                        if (rule.pattern.test(fullSentence)) {
+                            return {
+                                passed: false,
+                                score: 45,
+                                feedback: `⚠️ 邏輯診斷提示：${rule.msg}`
+                            };
+                        }
+                    }
+
+                    if (targetWord === '雖然') {
+                        const hasConjunction = /(依然|仍然|還是|卻|但)/.test(fullSentence);
+                        if (!hasConjunction) {
+                            return {
+                                passed: false,
+                                score: 50,
+                                feedback: '⚠️ 句型提示：「雖然……」通常需要搭配「依然、仍然、但是」等轉折詞，句子會更通順喔！'
+                            };
+                        }
+                    }
+
+                    if (targetWord === '為了') {
+                        const hasPurpose = /(要|想|能夠|獲得|考取|達成|參加|完成)/.test(userInput);
+                        if (!hasPurpose) {
+                            return {
+                                passed: false,
+                                score: 55,
+                                feedback: '⚠️ 邏輯提示：「為了……」後面通常要接具體想達成的目的或目標喔！'
+                            };
+                        }
+                    }
+
+                    if (targetWord === '除了') {
+                        const hasAddition = /(還|也|更|亦)/.test(fullSentence);
+                        if (!hasAddition) {
+                            return {
+                                passed: false,
+                                score: 55,
+                                feedback: '⚠️ 句型提示：「除了……」後面建議搭配「還、也」來補充另一項特長或事物！'
+                            };
+                        }
+                    }
+
+                    if (userInput.length >= 6) {
+                        return {
+                            passed: true,
+                            score: 85,
+                            feedback: `✅ 太棒了！句子前後文因果轉折明確，精準運用了目標語詞「${targetWord}」！`
+                        };
+                    } else {
+                        return {
+                            passed: true,
+                            score: 72,
+                            feedback: `✅ 造句邏輯通順！建議句末可以再多補充一些生動的細節描寫喔！`
+                        };
+                    }
+                },
+
+                autoTimeOutSubmit() {
+                    this.lastResult = {
+                        passed: false,
+                        stars: 0,
+                        gainedScore: 0,
+                        deduction: 0,
+                        comboMultiplier: 1,
+                        fullSentence: '時間到！未能完成填寫。',
+                        feedback: '競賽計時已結束！下一題繼續加油！'
+                    };
+                    this.combo = 0;
+                    this.showResultModal = true;
+                },
+
+                nextQuestion() {
+                    if (this.recognition && this.isRecording) {
+                        this.recognition.stop();
+                    }
+                    this.showResultModal = false;
+                    this.userInput = '';
+                    this.hintLevel = 0;
+
+                    if (this.currentIdx + 1 < this.questions.length) {
+                        this.currentIdx++;
+                        if (this.mode === 'competition') {
+                            this.resetTimer();
+                        }
+                    } else {
+                        clearInterval(this.timer);
+                        this.updateLeaderboard();
+                        this.screen = 'result';
+                    }
+                },
+
+                updateLeaderboard() {
+                    this.leaderboard.push({
+                        name: this.playerName || '挑戰者',
+                        score: this.score,
+                        stars: this.totalStars
+                    });
+                    this.leaderboard.sort((a, b) => b.score - a.score);
+                    this.leaderboard = this.leaderboard.slice(0, 5);
+                },
+
+                openTeacherModal() {
+                    this.rawTeacherInput = '';
+                    this.showTeacherModal = true;
+                },
+
+                parseTeacherInput() {
+                    if (!this.rawTeacherInput.trim()) return;
+                    
+                    const lines = this.rawTeacherInput.trim().split('\n');
+                    const parsedQuestions = [];
+
+                    lines.forEach(line => {
+                        const parts = line.split('|').map(p => p.trim());
+                        if (parts.length >= 3) {
+                            parsedQuestions.push({
+                                image: parts[0] || 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80',
+                                targetWord: parts[1],
+                                givenPart: parts[2],
+                                missingPosition: (parts[3] === 'front' || parts[3] === 'back') ? parts[3] : 'back',
+                                hint1: parts[4] || '觀察圖片情境',
+                                hint2: parts[5] || '依目標詞邏輯銜接句子'
+                            });
+                        }
+                    });
+
+                    if (parsedQuestions.length > 0) {
+                        this.questions = parsedQuestions;
+                        localStorage.setItem('sentence_app_questions', JSON.stringify(this.questions));
+                        this.showCustomNotification('匯入成功', `已成功匯入 ${parsedQuestions.length} 題隨堂測驗！`);
+                        this.showTeacherModal = false;
+                    } else {
+                        this.showCustomNotification('格式錯誤', '格式不符，請使用直線符號 "|" 分隔欄位！');
+                    }
+                },
+
+                deleteQuestion(idx) {
+                    this.questions.splice(idx, 1);
+                    localStorage.setItem('sentence_app_questions', JSON.stringify(this.questions));
+                },
+
+                resetDefaultQuestions() {
+                    this.loadDefaultQuestions();
+                    localStorage.removeItem('sentence_app_questions');
+                    this.showCustomNotification('還原成功', '已還原為系統預設之隨堂練習題庫！');
+                },
+
+                // 匯出當前 HTML 檔案供離線分享
+                downloadCurrentHtml() {
+                    const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+                    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = '造句王PK擂台.html';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.showCustomNotification('下載成功', '已下載「造句王PK擂台.html」！');
+                },
+
+                showCustomNotification(title, message) {
+                    const notice = document.createElement('div');
+                    notice.className = 'fixed bottom-5 right-5 bg-slate-800 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-sm font-bold flex items-center gap-2 border border-slate-700 animate-bounce-in';
+                    notice.innerHTML = `<i class="fa-solid fa-bell text-amber-400"></i> <span><strong>${title}：</strong>${message}</span>`;
+                    document.body.appendChild(notice);
+                    setTimeout(() => {
+                        notice.remove();
+                    }, 3200);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
