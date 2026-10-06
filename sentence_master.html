@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>造句王 PK 擂台 - 語文課堂互動評量平台</title>
+    <!-- Tailwind CSS for sleek classroom interface -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Confetti effects for reward feedback -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+        .recording-pulse {
+            animation: recordPulse 1.2s infinite ease-in-out;
+        }
+        @keyframes recordPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { transform: scale(1.06); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .bounce-card {
+            animation: bounceCard 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes bounceCard {
+            0% { opacity: 0; transform: scale(0.92) translateY(12px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800">
+
+    <header class="bg-indigo-600 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="app.showScreen('home')">
+                <div class="bg-amber-400 p-2 rounded-2xl text-indigo-950 shadow flex items-center justify-center">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black tracking-wide">造句王 PK 擂台</h1>
+                    <p class="text-xs text-indigo-200">國語文隨堂互動與語音造句評量</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <button onclick="app.openShareModal()" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs md:text-sm font-bold shadow flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>課堂分享</span>
+                </button>
+                <button onclick="app.openTeacherModal()" class="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-indigo-950 rounded-xl text-xs md:text-sm font-bold shadow flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    <span class="hidden sm:inline">題庫管理</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 flex-grow w-full flex flex-col justify-center">
+        
+        <!-- 首頁畫面 -->
+        <section id="screen-home" class="max-w-xl mx-auto w-full bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-indigo-100 text-center space-y-6 bounce-card">
+            <div class="inline-block bg-indigo-50 p-4 rounded-3xl text-indigo-600 shadow-inner">
+                <i class="fa-solid fa-feather-pointed text-4xl"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl md:text-3xl font-black text-slate-800">歡迎來到課堂造句大擂台！</h2>
+                <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+                    觀察情境圖片，讀懂題目給出的一半句子，使用指定的<span class="text-indigo-600 font-bold">目標語詞</span>完成另一半！支援<span class="text-rose-600 font-bold">語音辨識</span>直接說出答案喔！
+                </p>
+            </div>
+
+            <div class="text-left bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5">
+                <label class="block text-xs font-bold text-slate-600">
+                    <i class="fa-solid fa-user-tag text-indigo-500 me-1"></i> 請輸入學生座號或姓名：
+                </label>
+                <input id="playerNameInput" type="text" value="造句小達人" placeholder="例如：501小明 或 語文王" 
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold text-base text-indigo-900 bg-white">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button onclick="app.startGame('competition')" class="p-5 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl shadow-lg hover:-translate-y-0.5 transition flex flex-col items-center justify-center space-y-1 group">
+                    <i class="fa-solid fa-trophy text-2xl text-amber-300 group-hover:scale-110 transition-transform"></i>
+                    <span class="font-black text-lg">隨堂競賽模式</span>
+                    <span class="text-xs text-indigo-100">60秒倒數 + 連勝加分</span>
+                </button>
+
+                <button onclick="app.startGame('practice')" class="p-5 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl shadow-lg hover:-translate-y-0.5 transition flex flex-col items-center justify-center space-y-1 group">
+                    <i class="fa-solid fa-compass text-2xl text-emerald-200 group-hover:scale-110 transition-transform"></i>
+                    <span class="font-black text-lg">自主練習模式</span>
+                    <span class="text-xs text-emerald-100">無時間限制 + 提示引導</span>
+                </button>
+            </div>
+
+            <div class="text-xs text-slate-400">
+                <i class="fa-solid fa-list-check me-1 text-indigo-400"></i> 本單元收錄題數：<span id="homeQuestionCount" class="font-bold text-indigo-600">4</span> 題
+            </div>
+        </section>
+
+        <!-- 答題進行畫面 -->
+        <section id="screen-playing" class="hidden space-y-4">
+            
+            <!-- 頂部計分面板 -->
+            <div class="bg-white rounded-2xl p-4 shadow border border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-3 md:space-x-5">
+                    <div class="bg-indigo-50 px-3.5 py-1.5 rounded-xl border border-indigo-100">
+                        <span class="text-xs text-indigo-500 font-bold block">進度</span>
+                        <span id="displayProgress" class="text-base font-black text-indigo-700">1 / 4</span>
+                    </div>
+                    <div class="bg-amber-50 px-3.5 py-1.5 rounded-xl border border-amber-100">
+                        <span class="text-xs text-amber-600 font-bold block">累積分數</span>
+                        <span id="displayScore" class="text-base font-black text-amber-600">0</span>
+                    </div>
+                    <div id="comboBadge" class="hidden bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-black shadow flex items-center gap-1">
+                        <i class="fa-solid fa-fire text-amber-300"></i>
+                        <span id="comboText">2 連答達成!</span>
+                    </div>
+                </div>
+
+                <!-- 倒數計時器 -->
+                <div id="timerContainer" class="flex items-center space-x-2">
+                    <i class="fa-solid fa-stopwatch text-indigo-500 text-lg"></i>
+                    <div class="w-24 md:w-32 bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200">
+                        <div id="timerBar" class="h-full bg-indigo-500 rounded-full transition-all duration-1000" style="width: 100%;"></div>
+                    </div>
+                    <span id="timerText" class="font-black text-base w-7 text-right text-slate-700">60</span>
+                </div>
+            </div>
+
+            <!-- 題目主卡片 -->
+            <div class="bg-white rounded-3xl p-5 md:p-7 shadow-xl border border-indigo-50 space-y-5">
+                
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">必須使用語詞</span>
+                        <span id="displayTargetWord" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xl px-4 py-1.5 rounded-2xl shadow flex items-center gap-1.5">
+                            <i class="fa-solid fa-star text-amber-300 text-xs"></i>
+                            <span id="targetWordText">雖然</span>
+                        </span>
+                    </div>
+
+                    <!-- 提示按鈕 -->
+                    <div class="flex items-center gap-2">
+                        <button id="btnHint1" onclick="app.useHint(1)" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition flex items-center gap-1">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            <span>情境線索 (-10分)</span>
+                        </button>
+                        <button id="btnHint2" onclick="app.useHint(2)" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition flex items-center gap-1">
+                            <i class="fa-solid fa-puzzle-piece"></i>
+                            <span>骨架指引 (-20分)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 提示訊息展開區 -->
+                <div id="hintBox" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-xs text-amber-950 space-y-1.5">
+                    <p id="hintText1" class="hidden flex items-start gap-1.5">
+                        <i class="fa-solid fa-magnifying-glass text-amber-600 mt-0.5"></i>
+                        <span><strong>線索提示：</strong><span id="hintContent1"></span></span>
+                    </p>
+                    <p id="hintText2" class="hidden flex items-start gap-1.5 border-t border-amber-200/60 pt-1.5">
+                        <i class="fa-solid fa-diagram-project text-amber-600 mt-0.5"></i>
+                        <span><strong>骨架指引：</strong><span id="hintContent2"></span></span>
+                    </p>
+                </div>
+
+                <!-- 雙欄架構：情境圖片 + 輸入組合區 -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    
+                    <!-- 圖片情境 -->
+                    <div class="md:col-span-5">
+                        <div class="aspect-4/3 rounded-2xl overflow-hidden shadow bg-slate-100 border border-slate-200 relative group">
+                            <img id="questionImage" src="" alt="情境圖" class="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                                 onerror="this.src='https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80'">
+                            <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-2.5 text-white text-xs">
+                                <i class="fa-solid fa-image me-1"></i> 請根據圖片情境構思前後半句的關係
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 造句輸入與即時拼接區 -->
+                    <div class="md:col-span-7 space-y-4">
+                        
+                        <!-- 動態句子即時預覽 -->
+                        <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100 space-y-1.5">
+                            <div class="text-xs font-bold text-indigo-700 flex justify-between items-center">
+                                <span>完整造句組裝預覽（請造：<span id="slotPositionText" class="underline font-black text-indigo-900">後半句</span>）</span>
+                                <i class="fa-solid fa-arrows-split-up-and-left text-indigo-400"></i>
+                            </div>
+                            <div id="sentenceAssembly" class="text-base font-bold text-slate-800 leading-relaxed bg-white p-3 rounded-xl border border-indigo-100 shadow-sm">
+                                <!-- 動態注入組裝句子 -->
+                            </div>
+                        </div>
+
+                        <!-- 輸入框與語音辨識按鈕 -->
+                        <div class="space-y-1.5 relative">
+                            <div class="flex justify-between items-center text-xs font-bold text-slate-600">
+                                <span><i class="fa-solid fa-pen-nib text-indigo-500 me-1"></i> 請輸入造句（必須含有「<strong id="inputPromptWord" class="text-indigo-600"></strong>」）：</span>
+                                <span id="charCount" class="text-slate-400 font-mono">0 字</span>
+                            </div>
+
+                            <div class="relative">
+                                <textarea id="sentenceInput" rows="3" 
+                                          placeholder="請打字輸入，或點擊右下方麥克風用語音說出句子..." 
+                                          class="w-full p-3.5 pr-28 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none font-medium text-slate-800 text-base resize-none transition bg-slate-50 focus:bg-white"></textarea>
+
+                                <div class="absolute right-3 bottom-3">
+                                    <button id="micBtn" onclick="app.toggleSpeech()" type="button" 
+                                            class="px-3 py-2 rounded-xl text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 shadow flex items-center gap-1.5 transition">
+                                        <i id="micIcon" class="fa-solid fa-microphone"></i>
+                                        <span id="micText">語音輸入</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="recordingNotice" class="hidden flex items-center gap-2 text-xs text-rose-600 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                                <span>正在聆聽中... 請對著麥克風清楚說出造句內容！（說完請再點一次麥克風）</span>
+                            </div>
+                        </div>
+
+                        <!-- 檢查與送出按鈕 -->
+                        <button id="submitBtn" onclick="app.evaluateSentence()" class="w-full py-3.5 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-2xl font-black text-lg shadow-lg hover:shadow-indigo-200 transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>送出審閱</span>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 結算榜單畫面 -->
+        <section id="screen-result" class="hidden max-w-xl mx-auto w-full bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-indigo-100 text-center space-y-6 bounce-card">
+            <div class="inline-block bg-amber-100 p-4 rounded-3xl text-amber-600 shadow-inner">
+                <i class="fa-solid fa-trophy text-5xl animate-bounce"></i>
+            </div>
+            <div>
+                <h2 class="text-3xl font-black text-slate-800">競賽完成！擂台榮譽榜</h2>
+                <p id="resultPlayerGreeting" class="text-slate-500 text-sm mt-1">恭喜完成所有挑戰關卡！</p>
+            </div>
+
+            <!-- 成績統計 -->
+            <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
+                <div>
+                    <span class="text-xs font-bold text-slate-500 block">總得分</span>
+                    <span id="finalScore" class="text-2xl font-black text-indigo-600">0</span>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-slate-500 block">累積星星</span>
+                    <span id="finalStars" class="text-2xl font-black text-amber-500">0 ⭐</span>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-slate-500 block">最高連勝</span>
+                    <span id="finalCombo" class="text-2xl font-black text-rose-500">0</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="app.showScreen('home')" class="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition">
+                    返回首頁
+                </button>
+                <button onclick="app.restartGame()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition">
+                    再玩一次
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 評估回饋彈窗 -->
+    <div id="evalModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-indigo-100 space-y-4 bounce-card">
+            <div class="text-center space-y-2">
+                <div id="evalIconContainer" class="inline-flex items-center justify-center w-14 h-14 rounded-full shadow">
+                    <i id="evalIcon" class="fa-solid text-2xl"></i>
+                </div>
+                <h3 id="evalTitle" class="text-xl font-black">審閱結果</h3>
+                <div id="evalStars" class="flex justify-center space-x-1 text-amber-400 text-xl"></div>
+            </div>
+
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1 text-xs">
+                <span class="text-slate-500 font-bold block">組裝後的完整句子：</span>
+                <p id="evalFullSentence" class="font-bold text-slate-800 text-sm leading-relaxed"></p>
+            </div>
+
+            <div id="evalFeedbackBox" class="p-3.5 rounded-xl border text-xs leading-relaxed space-y-1">
+                <span class="font-black flex items-center gap-1">
+                    <i class="fa-solid fa-brain"></i> 語法與邏輯診斷：
+                </span>
+                <p id="evalFeedbackText" class="font-medium"></p>
+            </div>
+
+            <div class="pt-1">
+                <button id="evalModalBtn" class="w-full py-3 text-white font-bold rounded-xl shadow transition"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 課堂分享指南彈窗 -->
+    <div id="shareModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-indigo-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-share-nodes text-emerald-600"></i> 如何在課堂上分享給學生
+                </h3>
+                <button onclick="app.closeShareModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs md:text-sm text-slate-600">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-950 space-y-2">
+                    <p class="font-bold flex items-center gap-1.5 text-emerald-800">
+                        <i class="fa-solid fa-download"></i> 方式一：下載 index.html 檔給學生離線使用
+                    </p>
+                    <p class="leading-relaxed text-xs">
+                        點擊下方按鈕將這個網頁下載為單一檔案，學生在平板或電腦上<strong>連按兩下即可直接開啟</strong>，完全不需要連上外網！
+                    </p>
+                    <button onclick="app.downloadHtml()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-arrow-down"></i> 下載 index.html 檔案
+                    </button>
+                </div>
+
+                <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-indigo-950 space-y-1.5">
+                    <p class="font-bold flex items-center gap-1.5 text-indigo-800">
+                        <i class="fa-solid fa-globe"></i> 方式二：上傳至 GitHub Pages 生成 QR Code
+                    </p>
+                    <p class="leading-relaxed text-xs">
+                        上傳到 GitHub Repository 後開啟 Pages，產出網址轉成 QR Code 投影在電子白板，學生拿 iPad 掃描即可開始比賽！
+                    </p>
+                </div>
+            </div>
+
+            <div class="pt-2 text-right">
+                <button onclick="app.closeShareModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教師題庫管理後台彈窗 -->
+    <div id="teacherModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-indigo-100 space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> 教師題庫管理與自訂
+                </h3>
+                <button onclick="app.closeTeacherModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+            </div>
+
+            <div class="overflow-y-auto space-y-3 flex-1 pr-1 text-xs">
+                <div class="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-indigo-950 space-y-1">
+                    <span class="font-bold">批次新增格式（每行一題，使用直線 <code>|</code> 分隔）：</span>
+                    <code class="block bg-white p-2 rounded border border-indigo-200 text-slate-700 select-all">圖片網址 | 目標語詞 | 給定半句 | front或back | 提示1 | 提示2</code>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="font-bold text-slate-700 block">貼上自訂題目：</label>
+                    <textarea id="teacherInputArea" rows="3" placeholder="https://images.unsplash.com/... | 雖然 | ，我們依然按時出門運動。 | front | 觀察雨中跑步人物 | 描述雖然外面下著大雨" class="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <button onclick="app.importTeacherQuestions()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow">解析並新增題目</button>
+                </div>
+
+                <div class="space-y-1.5 pt-2">
+                    <span class="font-bold text-slate-700 block">現有題目列表：</span>
+                    <div id="teacherQuestionsList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-between">
+                <button onclick="app.resetDefaultQuestions()" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs">
+                    還原預設題庫
+                </button>
+                <button onclick="app.closeTeacherModal()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow">
+                    儲存並完成
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            screen: 'home',
+            mode: 'competition',
+            playerName: '語文小達人',
+            currentIdx: 0,
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            totalStars: 0,
+            timeLeft: 60,
+            timer: null,
+            hintLevel: 0,
+            isRecording: false,
+            recognition: null,
+
+            // 預設題庫
+            questions: [
+                {
+                    image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=800&q=80',
+                    targetWord: '雖然',
+                    givenPart: '，我們依然按時出門完成跑步訓練。',
+                    missingPosition: 'front',
+                    hint1: '觀察圖片中的雨天情境與跑步人物。',
+                    hint2: '可以造：「雖然今天外面下著大雨」'
+                },
+                {
+                    image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80',
+                    targetWord: '分享',
+                    givenPart: '小明把好吃的餅乾帶來學校，',
+                    missingPosition: 'back',
+                    hint1: '觀察同學之間互相分食的快樂氣氛。',
+                    hint2: '可以造：「熱情地和好朋友們一起分享。」'
+                },
+                {
+                    image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80',
+                    targetWord: '為了',
+                    givenPart: '，他每天放學後都留在圖書館認真閱讀。',
+                    missingPosition: 'front',
+                    hint1: '思考學生主動留校閱讀的目的（例如：期末測驗、充實自己）。',
+                    hint2: '可以造：「為了在期末考試中獲得優異成績」'
+                },
+                {
+                    image: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=800&q=80',
+                    targetWord: '除了',
+                    givenPart: '小華是個多才多藝的孩子，除了熱愛彈鋼琴，',
+                    missingPosition: 'back',
+                    hint1: '注意觀察圖片中可能進行的第二項運動或嗜好。',
+                    hint2: '可以造：「還非常擅長打籃球與畫畫。」'
+                }
+            ],
+
+            init() {
+                // 載入自訂題目
+                const stored = localStorage.getItem('sentence_app_questions');
+                if (stored) {
+                    try {
+                        const parsed = JSON.parse(stored);
+                        if (Array.isArray(parsed) && parsed.length > 0) this.questions = parsed;
+                    } catch(e){}
+                }
+
+                document.getElementById('homeQuestionCount').textContent = this.questions.length;
+                this.initSpeechRecognition();
+                this.bindInputEvents();
+                this.showScreen('home');
+            },
+
+            showScreen(name) {
+                this.screen = name;
+                document.getElementById('screen-home').classList.add('hidden');
+                document.getElementById('screen-playing').classList.add('hidden');
+                document.getElementById('screen-result').classList.add('hidden');
+
+                if (name === 'home') {
+                    clearInterval(this.timer);
+                    this.stopSpeech();
+                    document.getElementById('screen-home').classList.remove('hidden');
+                    document.getElementById('homeQuestionCount').textContent = this.questions.length;
+                } else if (name === 'playing') {
+                    document.getElementById('screen-playing').classList.remove('hidden');
+                } else if (name === 'result') {
+                    document.getElementById('screen-result').classList.remove('hidden');
+                }
+            },
+
+            startGame(selectedMode) {
+                const nameInput = document.getElementById('playerNameInput').value.trim();
+                this.playerName = nameInput || '造句小達人';
+                this.mode = selectedMode;
+                this.currentIdx = 0;
+                this.score = 0;
+                this.combo = 0;
+                this.maxCombo = 0;
+                this.totalStars = 0;
+
+                this.showScreen('playing');
+                this.loadQuestion();
+
+                const timerContainer = document.getElementById('timerContainer');
+                if (this.mode === 'competition') {
+                    timerContainer.classList.remove('hidden');
+                    this.resetTimer();
+                } else {
+                    timerContainer.classList.add('hidden');
+                }
+            },
+
+            resetTimer() {
+                clearInterval(this.timer);
+                this.timeLeft = 60;
+                const timerBar = document.getElementById('timerBar');
+                const timerText = document.getElementById('timerText');
+                
+                timerBar.style.width = '100%';
+                timerText.textContent = '60';
+                timerText.classList.remove('text-red-500');
+
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    const pct = Math.max(0, (this.timeLeft / 60) * 100);
+                    timerBar.style.width = pct + '%';
+                    timerText.textContent = this.timeLeft;
+
+                    if (this.timeLeft <= 10) {
+                        timerText.classList.add('text-red-500');
+                        timerBar.classList.add('bg-red-500');
+                    } else {
+                        timerBar.classList.remove('bg-red-500');
+                    }
+
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.timer);
+                        this.handleTimeout();
+                    }
+                }, 1000);
+            },
+
+            loadQuestion() {
+                const q = this.questions[this.currentIdx];
+                if (!q) return;
+
+                this.hintLevel = 0;
+                document.getElementById('sentenceInput').value = '';
+                document.getElementById('charCount').textContent = '0 字';
+                
+                // 重設提示外觀
+                document.getElementById('hintBox').classList.add('hidden');
+                document.getElementById('hintText1').classList.add('hidden');
+                document.getElementById('hintText2').classList.add('hidden');
+                document.getElementById('btnHint1').className = "px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition flex items-center gap-1";
+                document.getElementById('btnHint2').className = "px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50 text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition flex items-center gap-1";
+
+                // 更新題目內容
+                document.getElementById('displayProgress').textContent = `${this.currentIdx + 1} / ${this.questions.length}`;
+                document.getElementById('displayScore').textContent = this.score;
+                document.getElementById('targetWordText').textContent = q.targetWord;
+                document.getElementById('inputPromptWord').textContent = q.targetWord;
+                document.getElementById('questionImage').src = q.image;
+                document.getElementById('slotPositionText').textContent = q.missingPosition === 'front' ? '前半句' : '後半句';
+
+                document.getElementById('hintContent1').textContent = q.hint1;
+                document.getElementById('hintContent2').textContent = q.hint2;
+
+                this.updateSentenceAssembly('');
+            },
+
+            useHint(level) {
+                if (this.hintLevel < level) {
+                    this.hintLevel = level;
+                }
+                const box = document.getElementById('hintBox');
+                box.classList.remove('hidden');
+
+                if (level >= 1) {
+                    document.getElementById('hintText1').classList.remove('hidden');
+                    document.getElementById('btnHint1').className = "px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-300 bg-amber-100 text-amber-900 flex items-center gap-1";
+                }
+                if (level >= 2) {
+                    document.getElementById('hintText2').classList.remove('hidden');
+                    document.getElementById('btnHint2').className = "px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-300 bg-amber-100 text-amber-900 flex items-center gap-1";
+                }
+            },
+
+            bindInputEvents() {
+                const input = document.getElementById('sentenceInput');
+                input.addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    document.getElementById('charCount').textContent = `${val.length} 字`;
+                    this.updateSentenceAssembly(val);
+                });
+            },
+
+            updateSentenceAssembly(userInput) {
+                const q = this.questions[this.currentIdx];
+                const assemblyEl = document.getElementById('sentenceAssembly');
+                const cleanInput = userInput.trim() ? userInput : '【請在此造出句子...】';
+                const userTag = `<span class="inline-block px-2 py-0.5 bg-amber-100 text-amber-950 border-b-2 border-amber-400 rounded font-black">${cleanInput}</span>`;
+
+                if (q.missingPosition === 'front') {
+                    assemblyEl.innerHTML = `${userTag} <span class="text-indigo-900 font-bold">${q.givenPart}</span>`;
+                } else {
+                    assemblyEl.innerHTML = `<span class="text-indigo-900 font-bold">${q.givenPart}</span> ${userTag}`;
+                }
+            },
+
+            initSpeechRecognition() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRecognition) {
+                    this.recognition = new SpeechRecognition();
+                    this.recognition.lang = 'zh-TW';
+                    this.recognition.continuous = false;
+                    this.recognition.interimResults = false;
+
+                    this.recognition.onstart = () => {
+                        this.isRecording = true;
+                        document.getElementById('micBtn').className = "px-3 py-2 rounded-xl text-xs font-black text-white bg-rose-500 recording-pulse shadow flex items-center gap-1.5 transition";
+                        document.getElementById('micText').textContent = "聆聽中...";
+                        document.getElementById('recordingNotice').classList.remove('hidden');
+                    };
+
+                    this.recognition.onresult = (event) => {
+                        let text = '';
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            text += event.results[i][0].transcript;
+                        }
+                        text = text.replace(/^(嗯|啊|然後|那個)/, '').trim();
+                        if (text) {
+                            const input = document.getElementById('sentenceInput');
+                            input.value = input.value ? input.value + text : text;
+                            document.getElementById('charCount').textContent = `${input.value.length} 字`;
+                            this.updateSentenceAssembly(input.value);
+                        }
+                    };
+
+                    this.recognition.onerror = () => {
+                        this.stopSpeech();
+                    };
+
+                    this.recognition.onend = () => {
+                        this.stopSpeech();
+                    };
+                }
+            },
+
+            toggleSpeech() {
+                if (!this.recognition) {
+                    alert('您的瀏覽器目前未開啟或不支援麥克風語音辨識，請使用打字輸入！');
+                    return;
+                }
+                if (this.isRecording) {
+                    this.recognition.stop();
+                    this.stopSpeech();
+                } else {
+                    try {
+                        this.recognition.start();
+                    } catch(e) {
+                        this.stopSpeech();
+                    }
+                }
+            },
+
+            stopSpeech() {
+                this.isRecording = false;
+                const micBtn = document.getElementById('micBtn');
+                const micText = document.getElementById('micText');
+                const notice = document.getElementById('recordingNotice');
+                if (micBtn) micBtn.className = "px-3 py-2 rounded-xl text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 shadow flex items-center gap-1.5 transition";
+                if (micText) micText.textContent = "語音輸入";
+                if (notice) notice.classList.add('hidden');
+            },
+
+            evaluateSentence() {
+                const q = this.questions[this.currentIdx];
+                const input = document.getElementById('sentenceInput').value.trim();
+
+                if (!input) {
+                    alert('請先輸入或說出造句內容喔！');
+                    return;
+                }
+
+                let fullSentence = (q.missingPosition === 'front') ? (input + q.givenPart) : (q.givenPart + input);
+                let passed = true;
+                let feedback = '';
+                let stars = 3;
+
+                // 邏輯規則檢核 1：必須包含目標語詞
+                if (!input.includes(q.targetWord)) {
+                    passed = false;
+                    stars = 0;
+                    feedback = `❌ 尚未包含指定目標語詞「${q.targetWord}」，請務必將此語詞用在您的句子中！`;
+                }
+                // 邏輯規則檢核 2：字數過短
+                else if (input.length < 4) {
+                    passed = false;
+                    stars = 0;
+                    feedback = `❌ 輸入內容過短（僅 ${input.length} 個字），請補充更具體的情境或主詞描寫！`;
+                }
+                // 邏輯規則檢核 3：連詞重複與矛盾檢測
+                else if (/雖然.*雖然/.test(fullSentence)) {
+                    passed = false;
+                    stars = 0;
+                    feedback = `⚠️ 連詞重複了！整句中出現了兩次「雖然」，請刪除一個！`;
+                }
+                else if (/因為.*因為/.test(fullSentence)) {
+                    passed = false;
+                    stars = 0;
+                    feedback = `⚠️ 連詞重複了！句子中重複使用了「因為」！`;
+                }
+                else if (/雖然.*(因為|所以)/.test(fullSentence)) {
+                    passed = false;
+                    stars = 0;
+                    feedback = `⚠️ 邏輯搭配錯誤：「雖然……」表示轉折，通常搭配「依然、但是、卻」，不適合搭配「因為/所以」喔！`;
+                }
+                else if (q.targetWord === '為了' && !/(要|想|能夠|獲得|考取|達成|參加|完成|保護|幫助)/.test(input)) {
+                    passed = false;
+                    stars = 1;
+                    feedback = `⚠️ 邏輯指引：「為了……」後面通常需要接具體想達成的目標或願望喔！`;
+                }
+                else {
+                    // 通過檢核
+                    passed = true;
+                    if (this.hintLevel === 0 && input.length >= 7) stars = 3;
+                    else if (this.hintLevel <= 1) stars = 2;
+                    else stars = 1;
+                    feedback = `✅ 邏輯非常通順！前後句因果轉折明確，精準掌握了「${q.targetWord}」的用法！`;
+                }
+
+                // 計算得分
+                let gainedScore = 0;
+                if (passed) {
+                    this.combo++;
+                    if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+                    let mult = 1 + (this.combo - 1) * 0.2;
+                    let deduction = this.hintLevel * 10;
+                    gainedScore = Math.max(10, Math.round((stars * 35 - deduction) * mult));
+                    this.score += gainedScore;
+                    this.totalStars += stars;
+
+                    // 觸發慶祝彩帶
+                    try { confetti({ particleCount: 40, spread: 50 }); } catch(e){}
+                } else {
+                    this.combo = 0;
+                }
+
+                this.showResultModal(passed, stars, fullSentence, feedback);
+            },
+
+            showResultModal(passed, stars, fullSentence, feedback) {
+                const modal = document.getElementById('evalModal');
+                const iconContainer = document.getElementById('evalIconContainer');
+                const icon = document.getElementById('evalIcon');
+                const title = document.getElementById('evalTitle');
+                const starsBox = document.getElementById('evalStars');
+                const fullText = document.getElementById('evalFullSentence');
+                const feedbackBox = document.getElementById('evalFeedbackBox');
+                const feedbackText = document.getElementById('evalFeedbackText');
+                const btn = document.getElementById('evalModalBtn');
+
+                fullText.textContent = fullSentence;
+                feedbackText.textContent = feedback;
+
+                // 星星顯示
+                starsBox.innerHTML = '';
+                for (let i = 1; i <= 3; i++) {
+                    starsBox.innerHTML += `<i class="fa-solid fa-star ${i <= stars ? 'text-amber-400' : 'text-slate-200'}"></i>`;
+                }
+
+                if (passed) {
+                    iconContainer.className = "inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 shadow";
+                    icon.className = "fa-solid fa-check text-2xl";
+                    title.textContent = "造句審閱通過！";
+                    title.className = "text-xl font-black text-emerald-700";
+                    feedbackBox.className = "p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-950 text-xs leading-relaxed space-y-1";
+
+                    btn.textContent = (this.currentIdx + 1 < this.questions.length) ? "前往下一題 ➔" : "查看結算榮譽榜 🏆";
+                    btn.className = "w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition";
+                    btn.onclick = () => {
+                        modal.classList.add('hidden');
+                        this.nextQuestion();
+                    };
+                } else {
+                    iconContainer.className = "inline-flex items-center justify-center w-14 h-14 rounded-full bg-rose-100 text-rose-600 shadow";
+                    icon.className = "fa-solid fa-triangle-exclamation text-2xl";
+                    title.textContent = "句子邏輯待調整";
+                    title.className = "text-xl font-black text-rose-700";
+                    feedbackBox.className = "p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-950 text-xs leading-relaxed space-y-1";
+
+                    btn.textContent = "重新修改句子 ✏️";
+                    btn.className = "w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow transition";
+                    btn.onclick = () => {
+                        modal.classList.add('hidden');
+                    };
+                }
+
+                // 連勝提示
+                const comboBadge = document.getElementById('comboBadge');
+                if (this.combo > 1) {
+                    comboBadge.classList.remove('hidden');
+                    document.getElementById('comboText').textContent = `${this.combo} 連答達成!`;
+                } else {
+                    comboBadge.classList.add('hidden');
+                }
+
+                modal.classList.remove('hidden');
+            },
+
+            nextQuestion() {
+                this.stopSpeech();
+                if (this.currentIdx + 1 < this.questions.length) {
+                    this.currentIdx++;
+                    this.loadQuestion();
+                    if (this.mode === 'competition') {
+                        this.resetTimer();
+                    }
+                } else {
+                    this.finishGame();
+                }
+            },
+
+            handleTimeout() {
+                this.combo = 0;
+                this.showResultModal(false, 0, '（時間到！未能完成填寫）', '競賽倒數已結束！別氣餒，下一題繼續加油！');
+            },
+
+            finishGame() {
+                clearInterval(this.timer);
+                document.getElementById('resultPlayerGreeting').textContent = `恭喜 ${this.playerName} 完成所有國語文造句擂台挑戰！`;
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('finalStars').textContent = `${this.totalStars} ⭐`;
+                document.getElementById('finalCombo').textContent = `${this.maxCombo} Combo`;
+                this.showScreen('result');
+            },
+
+            restartGame() {
+                this.startGame(this.mode);
+            },
+
+            openShareModal() {
+                document.getElementById('shareModal').classList.remove('hidden');
+            },
+            closeShareModal() {
+                document.getElementById('shareModal').classList.add('hidden');
+            },
+
+            openTeacherModal() {
+                this.renderTeacherList();
+                document.getElementById('teacherModal').classList.remove('hidden');
+            },
+            closeTeacherModal() {
+                document.getElementById('teacherModal').classList.add('hidden');
+            },
+
+            renderTeacherList() {
+                const list = document.getElementById('teacherQuestionsList');
+                list.innerHTML = '';
+                this.questions.forEach((q, idx) => {
+                    list.innerHTML += `
+                        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                            <div>
+                                <span class="bg-indigo-600 text-white font-bold px-1.5 py-0.5 rounded text-[10px]">第 ${idx+1} 題</span>
+                                <strong class="text-slate-800 ml-1">語詞：${q.targetWord}</strong> (${q.missingPosition === 'front' ? '前半句缺口' : '後半句缺口'})
+                                <div class="text-slate-500 mt-0.5">${q.givenPart}</div>
+                            </div>
+                            <button onclick="app.deleteQuestion(${idx})" class="text-rose-500 hover:text-rose-700 p-1 font-bold">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+            },
+
+            deleteQuestion(idx) {
+                this.questions.splice(idx, 1);
+                localStorage.setItem('sentence_app_questions', JSON.stringify(this.questions));
+                this.renderTeacherList();
+                document.getElementById('homeQuestionCount').textContent = this.questions.length;
+            },
+
+            importTeacherQuestions() {
+                const val = document.getElementById('teacherInputArea').value.trim();
+                if (!val) return;
+                const lines = val.split('\n');
+                let count = 0;
+                lines.forEach(l => {
+                    const parts = l.split('|').map(s => s.trim());
+                    if (parts.length >= 3) {
+                        this.questions.push({
+                            image: parts[0] || 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80',
+                            targetWord: parts[1],
+                            givenPart: parts[2],
+                            missingPosition: (parts[3] === 'front' || parts[3] === 'back') ? parts[3] : 'back',
+                            hint1: parts[4] || '觀察圖片情境',
+                            hint2: parts[5] || '依目標詞邏輯銜接句子'
+                        });
+                        count++;
+                    }
+                });
+
+                if (count > 0) {
+                    localStorage.setItem('sentence_app_questions', JSON.stringify(this.questions));
+                    document.getElementById('teacherInputArea').value = '';
+                    this.renderTeacherList();
+                    document.getElementById('homeQuestionCount').textContent = this.questions.length;
+                    alert(`成功新增 ${count} 題！`);
+                } else {
+                    alert('格式錯誤，請確認使用直線符號 "|" 分隔欄位！');
+                }
+            },
+
+            resetDefaultQuestions() {
+                localStorage.removeItem('sentence_app_questions');
+                location.reload();
+            },
+
+            downloadHtml() {
+                const content = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+                const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'index.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        };
+
+        window.onload = function() {
+            app.init();
+        };
+    </script>
+</body>
+</html>
